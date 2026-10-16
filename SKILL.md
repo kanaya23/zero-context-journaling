@@ -33,6 +33,16 @@ This skill equips the agent with **Zero-Context State Persistence**: a rigorous 
   6. Clean up volatile resources (kill background processes, detach debuggers, free ports).
   7. Conclude the turn cleanly and concisely.
 
+### Axiom 3: Project-Local Placement & Bootstrap Discovery
+* **Location Invariant (Colocate with Changes)**:
+  - The journal (`journal.md` / `JOURNAL.md`) **MUST** always be created and maintained directly inside the root directory where active changes are taking place (e.g., `project1/journal.md`), **regardless** of where the agent's current working directory (`CWD`) or shell happens to be (e.g., even if executing from `~/system1/`).
+  - Never place project-specific journals in global user directories, home directories, or temporary scratch folders unless the project itself resides there.
+* **Bootstrap Discovery (Read vs. Fresh)**:
+  - Whenever entering, switching to, or starting work on a project directory:
+    1. **Check for Existing Journal**: Inspect the project directory for `journal.md` (or `JOURNAL.md`).
+    2. **If Found**: Read it immediately before invoking any other tools or speculative searches to bootstrap context and recover the rolling ground-truth state.
+    3. **If NOT Found**: Start fresh by initializing a new `journal.md` adhering strictly to the standardized 4-part schema.
+
 ---
 
 ## 2. Standardized 4-Part State Tracker Schema
@@ -89,26 +99,31 @@ The anchor of cold-start recovery. A vivid, condensed, technical summary that an
 ## 3. Execution Lifecycle: When to Update the Journal
 
 ```
-[Session Start / Wakeup] ──> Read JOURNAL.md ──> Execute "Immediate Next Action"
-                                                         │
-                                               (After every major micro-step)
-                                                         │
-                                                         ▼
-                                                 Update Section 1 & 2
-                                                         │
-                                           (User triggers Pause / Exit / Stop)
-                                                         │
-                                                         ▼
-                                            Immediate Halt Discipline
-                                                         │
-                                                         ▼
-                                          Write Sections 1-4 + Commit VCS
+[Enter Project Directory]
+          │
+          ├──> journal.md exists? ─── YES ──> Read journal.md ──> Resume "Immediate Next Action"
+          │                                                               │
+          └──> NO ──> Start fresh journal.md                      (After major micro-step)
+                            │                                             │
+                            ▼                                             ▼
+                   Execute Micro-Step                            Update Section 1 & 2
+                            │                                             │
+                            └──────────────────────┬──────────────────────┘
+                                                   │
+                                     (User triggers Pause / Exit / Stop)
+                                                   │
+                                                   ▼
+                                      Immediate Halt Discipline
+                                                   │
+                                                   ▼
+                                    Write Sections 1-4 + Commit VCS
 ```
 
-1. **On Session Bootstrap / Cold-Start**:
-   - Immediately check for `JOURNAL.md` (or `.agents/state.md`).
-   - Read Section 4 ("Summary: Immediate Next Action") and Section 2 ("Pending").
-   - Resume execution immediately without re-asking questions or re-running exploratory scans.
+1. **On Session Bootstrap / Entering a Project**:
+   - Locate the target project directory where changes will occur.
+   - Check if `journal.md` (or `JOURNAL.md`) exists in that specific project root directory.
+   - **If found**: Read Section 4 ("Summary: Immediate Next Action") and Section 2 ("Pending") to recover context instantly with zero exploratory tool overhead.
+   - **If not found**: Create a fresh `journal.md` in that project directory following the standardized 4-part schema before proceeding with work.
 
 2. **During Active Development**:
    - As tasks complete, append them directly to Section 1 as checked micro-steps (`- [x]`).
