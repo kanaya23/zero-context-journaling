@@ -4,6 +4,8 @@
 
 A **micro-step** is the smallest indivisible unit of engineering progress that yields a verified state transition.
 
+Under **Axiom 0 (The Unconditional Invariant: ALWAYS JOURNAL)**, micro-steps are not saved up for a post-session write-up. Every micro-step executed, offset proven, or critical command run MUST be immediately recorded in Section 1 of `journal.md`.
+
 In traditional human changelogs, entries like "fixed login bug" or "updated CSS" are common. For AI coding agents, such entries are **information black holes**. When a subsequent agent boots up with zero ambient memory, it must know:
 1. Exactly which file and line/function was altered.
 2. What input or command triggered the verification.
@@ -13,7 +15,7 @@ In traditional human changelogs, entries like "fixed login bug" or "updated CSS"
 
 ## The 4 Micro-Step Anatomy Rules
 
-Every completed micro-step item (`- [x]`) must follow this formula:
+Every completed micro-step item (`- [x]` or `1. [x]`) must follow this formula:
 
 $$\text{Micro-Step} = \text{[Action Verb]} + \text{[Concrete Target / File]} + \text{[Technical Change]} + \text{[Verified Outcome]}$$
 
@@ -41,5 +43,6 @@ $$\text{Micro-Step} = \text{[Action Verb]} + \text{[Concrete Target / File]} + \
 
 1. **The Ghost Edit**: Mentioning that a feature was added without providing the relative file path.
 2. **The Unverified Claim**: Marking a task complete without mentioning the test command, curl output, or compiler check that verified it.
-3. **The Multi-Task Bundle**: Packing 4 separate file refactors into 1 bullet point. Split them into individual `- [x]` micro-steps.
+3. **The Multi-Task Bundle**: Packing 4 separate file refactors into 1 bullet point. Split them into individual `- [x]` or `1. [x]` micro-steps.
 4. **Vague Quantifiers**: Writing "made performance faster" instead of "reduced query latency from 320ms to 18ms by indexing 'tenant_id'".
+5. **Deferred Logging**: Waiting until session end instead of recording each micro-step immediately in `journal.md`.

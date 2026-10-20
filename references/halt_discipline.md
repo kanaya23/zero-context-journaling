@@ -19,10 +19,12 @@ Untrained agents frequently succumb to the **"One More Thing" Loop**:
 
 ## 2. The Strict Halt Protocol
 
-When the user gives any termination or pause directive, the agent must immediately switch to **Execution Discipline: Immediate Halt**.
+When the user gives any termination or pause directive, the agent must immediately switch to **Execution Discipline: Immediate Halt on Exit / Stop**.
+
+Because the agent follows **Axiom 0 (The Continuous Journaling Invariant)**, all completed micro-steps are already persisted in Section 1. The halt routine executes cleanly and atomically without speculative exploration.
 
 ```
-User says "Pause / Stop / Dump findings"
+User says "Pause / Stop / Dump findings / Exit"
                  │
                  ▼
        [STOP ALL TOOL CALLS]
@@ -33,7 +35,7 @@ User says "Pause / Stop / Dump findings"
                  ▼
        [EXECUTE ATOMIC SAVE]
                  │
-                 ├── Step A: Update JOURNAL.md with latest micro-steps & Section 4
+                 ├── Step A: Freeze Section 4 (Rolling Ground Truth + Next Resumption Action)
                  ├── Step B: Stage and commit all active work to Git safety net
                  ├── Step C: Free volatile resources (detach debuggers, kill child procs)
                  │
@@ -50,9 +52,9 @@ User says "Pause / Stop / Dump findings"
 Before yielding the turn to the user upon a halt command, the agent must execute these actions and **nothing else**:
 
 - [ ] **Zero Speculative Tools**: Ensure no search, linter, or exploratory commands are queued.
-- [ ] **Update `JOURNAL.md`**:
-  - Add any recently finished actions as `- [x]` micro-steps in Section 1.
-  - Set accurate progress percentages in Section 2.
+- [ ] **Update & Freeze `journal.md`**:
+  - Verify recently finished actions are recorded as `- [x]` or `1. [x]` micro-steps in Section 1.
+  - Set accurate progress percentages and sequential objectives in Section 2.
   - Refresh Section 4 with:
     - Active branch / commit hash.
     - Active background tasks or bound ports.

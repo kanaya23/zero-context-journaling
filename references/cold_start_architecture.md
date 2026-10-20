@@ -19,37 +19,38 @@ When an agent restarts without a structured persistent journal, it predictably e
 * **Redundant Tests & Builds**: Re-running builds, re-installing dependencies, or re-verifying code that was already proven working.
 * **Scope Drift & Hallucination**: Assuming certain modules were not completed and re-writing working code from scratch, causing regression bugs.
 * **Token Budget Exhaustion**: Burning 20,000 to 50,000 prompt tokens simply re-reading source code that was previously analyzed.
+* **Deferred Journaling Failure**: Waiting until the end of the session to write notes—which are lost entirely if the session aborts or truncates early.
 
 ---
 
-## 3. The Solution: Externalized Ground Truth
+## 3. The Architecture: Externalized Ground Truth & Continuous Persistence
 
-Instead of relying on volatile LLM context or memory embeddings, Zero-Context State Persistence externalizes ground-truth state directly onto the file system in a human- and machine-readable journal (`JOURNAL.md`).
+Instead of relying on volatile LLM context or memory embeddings, Zero-Context State Persistence externalizes ground-truth state directly onto the file system in a human- and machine-readable journal (`journal.md`).
 
 ```
-┌────────────────────────────────────────┐
-│             Session N                  │
-│  - Completes micro-steps               │
-│  - Verifies assertions                 │
-│  - Encounters Pause/Exit trigger       │
-└───────────────────┬────────────────────┘
-                    │
-                    ▼ (Writes Atomic Ground Truth)
-      ┌───────────────────────────┐
-      │        JOURNAL.md         │
-      │  1. Completed Micro-steps │
-      │  2. Pending Objectives    │
-      │  3. Milestones            │
-      │  4. Rolling Summary       │
-      └─────────────┬─────────────┘
-                    │
-                    ▼ (Cold-Start Bootstrap)
-┌────────────────────────────────────────┐
-│            Session N+1                 │
-│  - Reads Section 4 & Section 2         │
-│  - Bypasses all exploratory scanning   │
-│  - Executes "Immediate Next Action"    │
-└────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│               ENTER PROJECT / COLD-START               │
+│  - Inspect project root for journal.md                 │
+│  - Mandatory Journal Summary Reading (Section 4 & 2)   │
+│  - Take "Immediate Next Action" on first tool call     │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│             CONTINUOUS EXECUTION LIFECYCLE             │
+│  - Executes verified micro-step                        │
+│  - IMMEDIATELY records micro-step in Section 1 (- [x]) │
+│  - Updates completion % in Section 2                   │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼ (Pause / Stop / Exit Trigger)
+┌────────────────────────────────────────────────────────┐
+│          EXECUTION DISCIPLINE: IMMEDIATE HALT          │
+│  - HALT IMMEDIATELY: zero speculative tool calls       │
+│  - Freeze Section 4 (Rolling Ground Truth)             │
+│  - Commit & push to Git safety net                     │
+│  - Clean up volatile resources                         │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -58,20 +59,25 @@ Instead of relying on volatile LLM context or memory embeddings, Zero-Context St
 
 When an agent wakes up or boots in an existing repository, it must execute the following deterministic boot sequence:
 
-1. **Existence Check**:
-   - Check if `JOURNAL.md` or `.agents/state.md` exists.
-   - If not found, check version control status and initialize Section 1.
+1. **Project-Local Discovery**:
+   - Inspect the local directory where active changes occur for `journal.md` (or `JOURNAL.md`).
+   - If not found, initialize a fresh `journal.md` adhering strictly to the standardized 4-part schema.
 
-2. **Ground-Truth Reading**:
-   - Parse Section 4 (`Summary: Rolling Ground Truth`).
+2. **Mandatory Journal Summary Reading**:
+   - On every session start, cold start, or entry into a project directory, read `journal.md` (specifically the **Summary** section) before taking action.
+   - Parse Section 4 (`Summary: MUST — Non-Optional, Always Updated Rolling Ground Truth`).
    - Parse Section 2 (`Pending (Ongoing / Unfinished)`).
    - Identify:
-     - Verified baseline facts (ports, processes, verified tests).
-     - The active task and its sub-objectives.
+     - Verified baseline facts (ports, processes, verified tests, memory offsets).
+     - The active task and its sequential sub-objectives.
      - The `Immediate Next Action`.
 
 3. **Resumption without Re-Exploration**:
    - Do NOT run broad directory searches or re-read irrelevant files.
    - Take the specified `Immediate Next Action` as the very first tool call of the session.
 
-This reduces cold-start bootstrap latency from minutes down to seconds, saving up to 90% of initialization tokens.
+4. **Continuous Persistence Invariant (Axiom 0)**:
+   - As each micro-step completes, immediately record it in Section 1 of `journal.md`.
+   - Never defer journaling to the end of the session.
+
+This reduces cold-start bootstrap latency from minutes down to seconds, eliminating token waste and preventing regressions.

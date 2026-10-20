@@ -23,27 +23,27 @@ SECTION_PATTERNS = {
 }
 
 PROGRESS_REGEX = re.compile(r"\[Progress\s+(\d+)%\]", re.IGNORECASE)
-CHECKBOX_REGEX = re.compile(r"^[\s\t]*-\s+\[([ xX])\]\s+(.+)$", re.MULTILINE)
+CHECKBOX_REGEX = re.compile(r"^[\s\t]*(?:[-*]|\d+\.)\s+\[([ xX])\]\s+(.+)$", re.MULTILINE)
 NEXT_ACTION_REGEX = re.compile(r"(Immediate\s+Next\s+Action|Next\s+Action|Next\s+Step|Resumption\s+Action)", re.IGNORECASE)
 ENV_STATE_REGEX = re.compile(r"(Environment\s+State|Active\s+Processes|Git\s+Branch|Current\s+State)", re.IGNORECASE)
 
 SCAFFOLD_TEMPLATE = """# Project State & Execution Journal
 
-## 1. Completed Task List (Micro-Steps)
-<!-- Record completed items as: - [x] Title: details and verification outcome -->
-- [x] Initial State: Verified repository structure and environment baseline.
+## 1. Completed Task List (Micro-Steps Down to Minute Detail)
+<!-- Record completed items as: 1. [x] Title: details or - [x] Title: details -->
+1. [x] Initial State: Verified repository structure and environment baseline.
 
 ## 2. Pending (Ongoing / Unfinished)
 <!-- Active work with explicit completion percentage and concrete objectives -->
-### [Progress 0%] Task Title
+### Initial Setup: Environment and workflow verification ([Progress 0%], baseline initialization)
 - [ ] Concrete actionable objective 1
 - [ ] Concrete actionable objective 2
 
-## 3. Milestone (User Remarks & Future Backlog)
+## 3. Milestone (Optional — User Remarks & Future Backlog)
 <!-- Long-term milestones and user requests outside current sprint -->
-- Future Roadmap Item: Description of user request and prerequisites.
+1. Future Roadmap Item: Description of user request and prerequisites.
 
-## 4. Summary (Rolling Ground Truth)
+## 4. Summary (MUST — Non-Optional, Always Updated Rolling Ground Truth)
 ### Proven Findings & Verifications
 - Baseline environment initialized and verified.
 
@@ -89,10 +89,10 @@ class JournalValidator:
 
     def _section_display_name(self, name: str) -> str:
         names = {
-            "completed": "1. Completed Task List (Micro-Steps)",
+            "completed": "1. Completed Task List (Micro-Steps Down to Minute Detail)",
             "pending": "2. Pending (Ongoing / Unfinished)",
-            "milestone": "3. Milestone (User Remarks & Future Backlog)",
-            "summary": "4. Summary (Rolling Ground Truth)",
+            "milestone": "3. Milestone (Optional — User Remarks & Future Backlog)",
+            "summary": "4. Summary (MUST — Non-Optional, Always Updated Rolling Ground Truth)",
         }
         return names.get(name, name)
 
@@ -204,7 +204,13 @@ Immediate Next Action: Do something.
     assert validator4.validate(), f"Scaffold template failed: {validator4.errors}"
     print("  [PASS] Test 4: Default scaffold template is 100% compliant.")
 
-    print("\nAll 4 unit tests passed successfully!")
+    # Test 5: Numbered micro-steps compliance
+    numbered_sample = valid_sample.replace("- [x]", "1. [x]")
+    validator5 = JournalValidator(numbered_sample)
+    assert validator5.validate(), f"Numbered sample failed: {validator5.errors}"
+    print("  [PASS] Test 5: Numbered micro-step formatting (1. [x]) passes validation.")
+
+    print("\nAll 5 unit tests passed successfully!")
     return 0
 
 
